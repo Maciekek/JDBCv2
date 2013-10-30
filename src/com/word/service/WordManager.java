@@ -8,14 +8,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-
-import javax.naming.ldap.PagedResultsControl;
-
 import com.word.domain.PartOfSpeech;
 import com.word.domain.Word;
 
 public class WordManager {
-
+	/*
+	 * PartOfSpeech jest w realicji jeden do wielu z tabela Word Jeden
+	 * PartOfSpeech moze miec wiele Word
+	 */
 	private Connection connection;
 	private Statement statement;
 
@@ -27,10 +27,17 @@ public class WordManager {
 	private PreparedStatement clearTableWord;
 	private PreparedStatement addPartOfSpeechStmt;
 	private PreparedStatement clearPartOfSpeechStmt;
-	private PreparedStatement getJoinStmt;
+	private PreparedStatement getJoinAllStmt;
 	private PreparedStatement getPartOfSpeechStmt;
 	private PreparedStatement setId_pos;
 	private PreparedStatement deleteRecordByIdStmt;
+	private PreparedStatement getXfromYStmt;
+	private PreparedStatement getYfromXStmt;
+	private PreparedStatement getRecordsByIdStmt;
+
+	/*
+	 * e = get ... e.pole = "...." update(e)
+	 */
 
 	public WordManager() {
 		try {
@@ -64,14 +71,20 @@ public class WordManager {
 
 			clearPartOfSpeechStmt = connection
 					.prepareStatement("DELETE FROM PARTOFSPEECH");
-			getJoinStmt = connection
+			getJoinAllStmt = connection
 					.prepareStatement("SELECT * FROM WORD RIGHT JOIN PARTOFSPEECH ON WORD.ID_POS = PARTOFSPEECH.ID_POS");
 			getPartOfSpeechStmt = connection
 					.prepareStatement("SELECT * FROM PARTOFSPEECH");
 			setId_pos = connection
 					.prepareStatement("UPDATE WORD SET id_pos = ? where id_word = ?");
-			deleteRecordByIdStmt = connection.prepareStatement("DELETE FROM word WHERE id_word = ?");
-
+			deleteRecordByIdStmt = connection
+					.prepareStatement("DELETE FROM word WHERE id_word = ?");
+			getXfromYStmt = connection
+					.prepareStatement("SELECT id_word,id_pos, mianownik, dopelniacz, wolacz FROM WORD RIGHT JOIN PARTOFSPEECH ON WORD.ID_POS = PARTOFSPEECH.ID_POS");
+			getYfromXStmt = connection
+					.prepareStatement("SELECT id_word,id_pos, rzeczownik, przymiotnik, czasownik FROM WORD RIGHT JOIN PARTOFSPEECH ON WORD.ID_POS = PARTOFSPEECH.ID_POS");
+			getRecordsByIdStmt = connection
+					.prepareStatement("SELECT id_word, id_pos, mianownik, dopelniacz,wolacz, rzeczownik,przymiotnik, czasownik FROM WORD RIGHT JOIN PARTOFSPEECH ON WORD.ID_POS = ? AND WORD.ID_POS = PARTOFSPEECH.ID_POS WHERE WORD.ID_POS > 0 ");
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -111,18 +124,18 @@ public class WordManager {
 		return count;
 
 	}
-	
+
 	public int deleteRecordById(int Id) {
 		int count = 0;
-			try {
-				deleteRecordByIdStmt.setInt(1, Id);
-				
-				count = deleteRecordByIdStmt.executeUpdate();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
+		try {
+			deleteRecordByIdStmt.setInt(1, Id);
+
+			count = deleteRecordByIdStmt.executeUpdate();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		return count;
 	}
 
@@ -184,18 +197,45 @@ public class WordManager {
 
 	public List<PartOfSpeech> getJoin() {
 		List<PartOfSpeech> parts = new ArrayList<PartOfSpeech>();
-
+		ResultSet rs;
 		try {
-			ResultSet rs = getJoinStmt.executeQuery();
+			// getJoinStmt.setString(1,columnName);
+			rs = getJoinAllStmt.executeQuery();
 
 			while (rs.next()) {
 				PartOfSpeech pos = new PartOfSpeech();
 
-				pos.setId(rs.getInt("id_pos"));
+				pos.setId(rs.getInt("id_word"));
 				pos.setId_pos(rs.getInt("id_pos"));
 				pos.setRzeczownik(rs.getString("rzeczownik"));
 				pos.setPrzymiotnik(rs.getString("przymiotnik"));
 				pos.setCzasownik(rs.getString("czasownik"));
+				pos.setMianoswnik(rs.getString("mianownik"));
+				pos.setDopelniacz(rs.getString("dopelniacz"));
+				pos.setWolacz(rs.getString("wolacz"));
+
+				parts.add(pos);
+
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return parts;
+
+	}
+
+	public List<PartOfSpeech> getXfromY() {
+		List<PartOfSpeech> parts = new ArrayList<PartOfSpeech>();
+
+		try {
+			ResultSet rs = getXfromYStmt.executeQuery();
+			while (rs.next()) {
+				PartOfSpeech pos = new PartOfSpeech();
+
+				pos.setId(rs.getInt("id_word"));
+				pos.setId_pos(rs.getInt("id_pos"));
 				pos.setMianoswnik(rs.getString("mianownik"));
 				pos.setDopelniacz(rs.getString("dopelniacz"));
 				pos.setWolacz(rs.getString("wolacz"));
@@ -206,9 +246,30 @@ public class WordManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
 		return parts;
 
+	}
+
+	public List<PartOfSpeech> getYfromX() {
+		List<PartOfSpeech> parts = new ArrayList<PartOfSpeech>();
+
+		try {
+			ResultSet rs = getYfromXStmt.executeQuery();
+			while (rs.next()) {
+				PartOfSpeech pos = new PartOfSpeech();
+
+				pos.setId(rs.getInt("id_word"));
+				pos.setRzeczownik(rs.getString("rzeczownik"));
+				pos.setPrzymiotnik(rs.getString("przymiotnik"));
+				pos.setCzasownik(rs.getString("czasownik"));
+
+				parts.add(pos);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return parts;
 	}
 
 	public List<PartOfSpeech> getAllPartOfSpeech() {
@@ -237,46 +298,48 @@ public class WordManager {
 
 	public int updateId_pos(int newId, int whichRecord) {
 		int count = 0;
-		
-		
-		
+
 		try {
 			setId_pos.setInt(1, newId);
 			setId_pos.setInt(2, whichRecord);
-			
+
 			count = setId_pos.executeUpdate();
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		return count;
 	}
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	public List<PartOfSpeech> getRecordsById(int indexColumn) {
+		List<PartOfSpeech> parts = new ArrayList<PartOfSpeech>();
+		
+		try {
+			
+			getRecordsByIdStmt.setInt(1, indexColumn);
+			ResultSet rs = getRecordsByIdStmt.executeQuery();
+			
+			while(rs.next()) {
+				PartOfSpeech pos = new PartOfSpeech();
+				
+				pos.setId_pos(rs.getInt("id_pos"));
+				pos.setId(rs.getInt("id_word"));
+				pos.setMianoswnik(rs.getString("mianownik"));
+				pos.setDopelniacz(rs.getString("dopelniacz"));
+				pos.setWolacz(rs.getString("wolacz"));
+				pos.setRzeczownik(rs.getString("rzeczownik"));
+				pos.setPrzymiotnik(rs.getString("przymiotnik"));
+				pos.setCzasownik(rs.getString("czasownik"));
+				
+				parts.add(pos);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return parts;
+	}
 
 }

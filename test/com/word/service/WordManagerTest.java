@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import com.word.domain.PartOfSpeech;
 import com.word.domain.Word;
@@ -30,7 +29,7 @@ public class WordManagerTest {
 
 	
 	@Test
-	@After
+	
 	public void afterInputDate() {
 		PartOfSpeech pos = new PartOfSpeech(1, rzeczownik1, przymiotnik1,
 				czasownik1);
@@ -136,7 +135,7 @@ public class WordManagerTest {
 		wordManager.clearTablePartOfSpeech();
 	}
 	
-	@Test @After
+	@Test 
 	public void checkJoinVer2() {
 		wordManager.clearTablePartOfSpeech();
 		wordManager.clearTableWord();
@@ -161,6 +160,30 @@ public class WordManagerTest {
 		wordManager.clearTableWord();
 		
 	}
+	
+	
+	@Test
+	public void checkJoinByColumnName() {
+		wordManager.clearTablePartOfSpeech();
+		wordManager.clearTableWord();
+		
+		Word word = new Word(2,2, mianownik2,dopelniacz2,wolacz2);
+		PartOfSpeech pos = new PartOfSpeech(2, rzeczownik2, przymiotnik2, czasownik2);
+		
+		wordManager.addPartOfSpeech(pos);
+		wordManager.addWord(word);
+		
+		List<PartOfSpeech> poses = wordManager.getJoin();
+		PartOfSpeech partRetrieved = poses.get(0);
+		
+		assertEquals(rzeczownik2, partRetrieved.getRzeczownik());
+		
+		
+		
+		
+	}
+	
+	
 
 	@Test
 	public void checkGetAllPartOfSpeech() {
@@ -218,7 +241,7 @@ public class WordManagerTest {
 		List<PartOfSpeech> poses = wordManager.getJoin();
 		PartOfSpeech partRetrieved = poses.get(0);
 		
-		assertEquals(33, partRetrieved.getId());
+		assertEquals(2, partRetrieved.getId());
 		assertEquals(33, partRetrieved.getId_pos());
 		assertEquals(rzeczownik2, partRetrieved.getRzeczownik());
 		assertEquals(przymiotnik2, partRetrieved.getPrzymiotnik());
@@ -302,7 +325,96 @@ public class WordManagerTest {
 	}
 	
 	
+	@Test
+	public void ShouldGetMianownikDopelniaczWolacz() {
+		wordManager.clearTablePartOfSpeech();
+		wordManager.clearTableWord();
+		
+		Word word = new Word(1, 1, mianownik1, dopelniacz1, wolacz1);
+		Word word2 = new Word(2,1,"ala", "ma", "kota");
+		PartOfSpeech pos = new PartOfSpeech(1, rzeczownik1, przymiotnik1, czasownik1);
+		wordManager.addWord(word);
+		wordManager.addWord(word2);
+		wordManager.addPartOfSpeech(pos);
+		
+		List<PartOfSpeech> poses = wordManager.getXfromY();
+		PartOfSpeech partRetrieved = poses.get(0);
+		PartOfSpeech partRetrieved1 = poses.get(1);
+		assertEquals(1, partRetrieved.getId());
+		assertEquals(mianownik1, partRetrieved.getMianoswnik());
+		assertEquals(dopelniacz1, partRetrieved.getDopelniacz());
+		assertEquals(wolacz1, partRetrieved.getWolacz());
+		
+		assertEquals(2, partRetrieved1.getId());
+		assertEquals("ala", partRetrieved1.getMianoswnik());
+		assertEquals("ma", partRetrieved1.getDopelniacz());
+		assertEquals("kota", partRetrieved1.getWolacz());
+		
+	}
 	
+	@Test
+	public void ShouldGetRzeczPrzymCzas() {
+		wordManager.clearTablePartOfSpeech();
+		wordManager.clearTableWord();
+		
+		Word word = new Word(1, 1, mianownik1, dopelniacz1, wolacz1);
+		Word word2 = new Word(2,1,"ala", "ma", "kota");
+		PartOfSpeech pos = new PartOfSpeech(1, rzeczownik1, przymiotnik1, czasownik1);
+		wordManager.addWord(word);
+		wordManager.addWord(word2);
+		wordManager.addPartOfSpeech(pos);
+		
+		List<PartOfSpeech> poses = wordManager.getYfromX();
+		PartOfSpeech partRetrieved = poses.get(0);
+		assertEquals(1, partRetrieved.getId());
+		assertEquals(rzeczownik1, partRetrieved.getRzeczownik());
+		assertEquals(przymiotnik1, partRetrieved.getPrzymiotnik());
+		assertEquals(czasownik1, partRetrieved.getCzasownik());
+		
+		
+		
+	}
+	
+	
+	@Test @After
+	public void ShouldGetRecordsById() {
+		/*
+		 * Zapytanie kontrolne: SELECT id_word, id_pos, mianownik, dopelniacz,wolacz, rzeczownik,przymiotnik, czasownik FROM WORD RIGHT JOIN PARTOFSPEECH ON WORD.ID_POS = 1 AND WORD.ID_POS = PARTOFSPEECH.ID_POS WHERE WORD.ID_POS > 0 
+		 */
+		
+		wordManager.clearTablePartOfSpeech();
+		wordManager.clearTableWord();
+		PartOfSpeech pos = new PartOfSpeech(1, rzeczownik1, przymiotnik1, czasownik1);
+		Word word = new Word(1,1,mianownik1, dopelniacz1, wolacz1);
+		Word word2 = new Word(2,1,mianownik2, dopelniacz2, wolacz2);
+
+		wordManager.addPartOfSpeech(pos);
+		wordManager.addWord(word);
+		wordManager.addWord(word2);
+		List<PartOfSpeech> poses = wordManager.getRecordsById(1);
+		PartOfSpeech partRetrieved = poses.get(0);
+		PartOfSpeech partRetrieved1 = poses.get(1);
+		
+		assertEquals(1, partRetrieved.getId_pos());
+		assertEquals(1, partRetrieved.getId());
+		assertEquals(rzeczownik1, partRetrieved.getRzeczownik());
+		assertEquals(przymiotnik1, partRetrieved.getPrzymiotnik());
+		assertEquals(czasownik1, partRetrieved.getCzasownik());
+		assertEquals(mianownik1, partRetrieved.getMianoswnik());
+		assertEquals(dopelniacz1, partRetrieved.getDopelniacz());
+		assertEquals(wolacz1, partRetrieved.getWolacz());
+		
+		assertEquals(1, partRetrieved1.getId_pos());
+		assertEquals(rzeczownik1, partRetrieved1.getRzeczownik());
+		assertEquals(przymiotnik1, partRetrieved1.getPrzymiotnik());
+		assertEquals(czasownik1, partRetrieved1.getCzasownik());
+		assertEquals(mianownik2, partRetrieved1.getMianoswnik());
+		assertEquals(dopelniacz2, partRetrieved1.getDopelniacz());
+		assertEquals(wolacz2, partRetrieved1.getWolacz());
+		
+		
+		
+	}
 	
 	
 	
